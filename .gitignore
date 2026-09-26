@@ -1,0 +1,5 @@
+.env
+*.json
+*.jsonl
+.vscode
+node_modules

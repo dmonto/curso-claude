@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Assistant Pipeline</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1150px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f6f6f6;
+    }
+
+    textarea {
+      width: 100%;
+      height: 90px;
+      padding: 12px;
+      font-size: 16px;
+    }
+
+    button {
+      margin-top: 12px;
+      padding: 10px 16px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    pre {
+      background: #f0f0f0;
+      padding: 12px;
+      overflow: auto;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eee;
+      font-size: 12px;
+      margin: 4px 4px 4px 0;
+    }
+
+    .actions {
+      margin-top: 12px;
+    }
+
+    .actions button {
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+  <script>
+  function getSpeechRecognitionSupport() {
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
+
+    return {
+      supported: Boolean(SpeechRecognition),
+
+      message: SpeechRecognition
+        ? "Este navegador expone SpeechRecognition."
+        : "Este navegador no expone SpeechRecognition. Usa entrada de texto."
+    };
+  }
+
+  console.log(
+    getSpeechRecognitionSupport()
+  );
+</script>
+</head>
+<body>
+  <h3>Assistant Pipeline</h3>
+
+  <p>
+    Escribe una petición de usuario y revisa cómo pasa por contexto, intención, permisos, herramientas, respuesta y contrato UX.
+  </p>
+
+  <textarea id="message">Quiero cancelar mi último pedido porque llega tarde</textarea>
+  <br />
+  <button onclick="runPipeline()">Ejecutar pipeline</button>
+
+  <div id="output" class="grid"></div>
+
+  <script>
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderJson(value) {
+      return escapeHtml(JSON.stringify(value, null, 2));
+    }
+
+    function renderUiActions(uiActions) {
+      if (!Array.isArray(uiActions) || uiActions.length === 0) {
+        return `<p class="muted">No hay acciones de UI.</p>`;
+      }
+
+      return `
+        <div class="actions">
+          ${uiActions.map(action => `
+            <button
+              data-action-type="${escapeHtml(action.type)}"
+              data-action="${escapeHtml(action.action || "")}">
+              ${escapeHtml(action.label)}
+            </button>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    async function runPipeline() {
+      const message = document.getElementById("message").value;
+
+      const httpResponse = await fetch("/api/assistant-pipeline", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await httpResponse.json();
+
+      if (!httpResponse.ok) {
+        document.getElementById("output").innerHTML = `
+          <div class="card">
+            <h3>Error</h3>
+            <pre>${renderJson(data)}</pre>
+          </div>
+        `;
+        return;
+      }
+
+      const assistantResponse = data.response || {};
+      const ux = data.ux || {};
+      const permissionCheck = data.permissionCheck || {};
+      const toolCalls = Array.isArray(data.toolCalls) ? data.toolCalls : [];
+
+      document.getElementById("output").innerHTML = `
+        <div class="card">
+          <h3>Resultado del asistente</h3>
+
+          <p>${escapeHtml(assistantResponse.answer || "Sin respuesta.")}</p>
+
+          <span class="badge">Intent: ${escapeHtml(data.intent)}</span>
+          <span class="badge">Permiso requerido: ${escapeHtml(permissionCheck.required || "-")}</span>
+          <span class="badge">Permiso concedido: ${permissionCheck.granted ? "sí" : "no"}</span>
+          <span class="badge">Datos reales: ${assistantResponse.dataUsed ? "sí" : "no"}</span>
+          <span class="badge">Acción: ${assistantResponse.proposedAction ? "sí" : "no"}</span>
+          <span class="badge">Confirmación: ${assistantResponse.requiresConfirmation ? "sí" : "no"}</span>
+
+          <h3>Tool calls</h3>
+          <pre>${renderJson(toolCalls)}</pre>
+
+          <h3>Respuesta estructurada</h3>
+          <pre>${renderJson(assistantResponse)}</pre>
+        </div>
+
+        <div class="card">
+          <h3>Contrato UX</h3>
+
+          <span class="badge">UX role: ${escapeHtml(ux.uxRole || "-")}</span>
+          <span class="badge">Display: ${escapeHtml(ux.displayMode || "-")}</span>
+          <span class="badge">Tone: ${escapeHtml(ux.assistantTone || "-")}</span>
+
+          ${renderUiActions(ux.uiActions)}
+
+          <h3>UX JSON</h3>
+          <pre>${renderJson(ux)}</pre>
+        </div>
+
+        <div class="card">
+          <h3>Contexto usado</h3>
+          <pre>${renderJson(data.contextUsed)}</pre>
+        </div>
+
+        <div class="card">
+          <h3>Respuesta completa</h3>
+          <pre>${renderJson(data)}</pre>
+        </div>
+      `;
+    }
+
+    runPipeline();
+  </script>
+</body>
+</html>
