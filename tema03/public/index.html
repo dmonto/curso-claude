@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Asistente IA - Integración Frontend Backend</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h3>Asistente de pedidos e incidencias</h3>
+
+      <div class="context-box">
+        <strong>Contexto de pantalla</strong>
+        <div>Página: <span id="currentPage">orders</span></div>
+        <div>Entidad seleccionada: <span id="selectedEntityId">ORD-1002</span></div>
+      </div>
+
+      <div id="chat" class="chat"></div>
+
+      <div id="pendingActionBox" class="pending-action hidden"></div>
+
+      <form id="chatForm" class="chat-form">
+        <input
+          id="messageInput"
+          type="text"
+          placeholder="Escribe tu mensaje..."
+          autocomplete="off"
+        />
+        <button type="submit">Enviar</button>
+      </form>
+
+      <div id="status" class="status"></div>
+<button id="closeSessionButton" type="button">Cerrar sesión del asistente</button>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

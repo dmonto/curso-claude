@@ -3,3 +3,4 @@
 *.jsonl
 .vscode
 node_modules
+*.md

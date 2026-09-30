@@ -1,0 +1,109 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+}
+
+.app {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.panel {
+  background: white;
+  border: 1px solid #dde3ea;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.context-box {
+  background: #f8fafc;
+  border: 1px solid #dde3ea;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.chat {
+  height: 380px;
+  overflow-y: auto;
+  border: 1px solid #dde3ea;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.message {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.message.user {
+  background: #e8f0fe;
+  margin-left: 80px;
+}
+
+.message.assistant {
+  background: #f1f5f9;
+  margin-right: 80px;
+}
+
+.chat-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.chat-form input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccd5df;
+  border-radius: 8px;
+}
+
+button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pending-action {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid #e2b500;
+  background: #fff8d6;
+  border-radius: 8px;
+}
+
+.pending-action button {
+  margin-right: 8px;
+}
+
+.actions-row {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #52616f;
+}
+
+.hidden {
+  display: none;
+}

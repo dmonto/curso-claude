@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Asistente IA - Tema 3</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h3>Asistente de pedidos e incidencias</h3>
+
+      <div class="context-box">
+        <strong>Contexto de pantalla</strong>
+        <div>Página: <span id="currentPage">orders</span></div>
+        <div>
+          Pedido seleccionado:
+          <select id="orderSelector">
+            <option value="ORD-1001">ORD-1001</option>
+            <option value="ORD-1002" selected>ORD-1002</option>
+          </select>
+        </div>
+        <div>Entidad seleccionada: <span id="selectedEntityId">ORD-1002</span></div>
+      </div>
+
+      <div id="chat" class="chat"></div>
+
+      <div id="pendingActionBox" class="pending-action hidden"></div>
+
+      <form id="chatForm" class="chat-form">
+        <input
+          id="messageInput"
+          type="text"
+          placeholder="Escribe tu mensaje..."
+          autocomplete="off"
+        />
+        <button type="submit">Enviar</button>
+      </form>
+
+      <div class="actions-row">
+        <button id="feedbackPositive" type="button">Respuesta útil</button>
+        <button id="feedbackNegative" type="button">Respuesta no útil</button>
+        <button id="closeSessionButton" type="button">Cerrar sesión del asistente</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
