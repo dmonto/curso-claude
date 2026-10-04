@@ -74,7 +74,6 @@ const firstResponse = await client.messages.create({
   system: `
 Eres un asistente de soporte.
 
-Usa get_order_status cuando necesites consultar el estado real de un pedido.
 No inventes estados de pedido.
 `,
 
