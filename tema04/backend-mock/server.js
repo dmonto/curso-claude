@@ -141,7 +141,8 @@ app.post("/api/assistant/messages", async (req, res) => {
   }
 
   const activeConversationId = conversationId || crypto.randomUUID();
-  const entityId = screenContext?.entityId;
+  const entityId = screenContext?.entity?.id || screenContext?.entityId;
+  const entityType = screenContext?.entity?.type || screenContext?.entityType;
   const ticket = entityId ? getTicketById(entityId) : null;
   const knowledge = ticket
     ? searchKnowledge(message, ticket.service)
@@ -199,8 +200,8 @@ app.post("/api/assistant/messages", async (req, res) => {
     correlationId,
     conversationId: activeConversationId,
     route: screenContext?.route,
-    entityType: screenContext?.entityType,
-    entityId: screenContext?.entityId,
+    entityType,
+    entityId,
     messageLength: message.length,
     usedTicket: Boolean(ticket),
     usedKnowledge: knowledge.map(item => item.id)
