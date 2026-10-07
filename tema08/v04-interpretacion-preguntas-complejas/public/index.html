@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>v04 Interpretación de preguntas complejas</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 40px auto; padding: 0 20px; background: #f6f6f6; }
+    textarea { width: 100%; min-height: 95px; padding: 12px; font-size: 16px; box-sizing: border-box; }
+    button { margin-top: 12px; padding: 10px 16px; font-size: 16px; cursor: pointer; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 24px; }
+    .card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 16px; }
+    .card h3 { margin-top: 0; }
+    pre { background: #f0f0f0; padding: 12px; overflow: auto; border-radius: 6px; font-size: 13px; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #eee; font-size: 12px; margin: 4px 4px 4px 0; }
+    .answer { font-size: 18px; line-height: 1.45; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h3>v04 Interpretación de preguntas complejas</h3>
+  <p>Descompone preguntas complejas en pasos de carga, filtro, ordenación y resumen.</p>
+  <textarea id="message">Qué clientes tienen pedidos retrasados y facturas vencidas, prioriza por mayor importe</textarea>
+  <br />
+  <button onclick="run()">Ejecutar</button>
+  <div id="output" class="grid"></div>
+
+  <script>
+    const endpoint = "/api/complex-question";
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderJson(value) {
+      return escapeHtml(JSON.stringify(value, null, 2));
+    }
+
+    async function run() {
+      const message = document.getElementById("message").value;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+      const data = await response.json();
+
+      document.getElementById("output").innerHTML = `
+        <div class="card">
+          <h3>Respuesta</h3>
+          <p class="answer">${escapeHtml(data.answer || data.summary || "Consulta procesada.")}</p>
+          <span class="badge">endpoint: ${escapeHtml(endpoint)}</span>
+          <span class="badge">matched: ${data.matched === false ? "no" : "sí"}</span>
+          <pre>${renderJson(data.result || data.rows || data.records || data.items || data.comparison || data.patterns || [])}</pre>
+        </div>
+        <div class="card">
+          <h3>JSON completo</h3>
+          <pre>${renderJson(data)}</pre>
+        </div>
+      `;
+    }
+
+    run();
+  </script>
+</body>
+</html>

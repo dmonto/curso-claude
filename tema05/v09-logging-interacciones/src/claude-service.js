@@ -5,7 +5,7 @@ export class ClaudeService {
     apiKey,
     model,
     defaultMaxTokens = 600,
-    defaultTemperature = 0.3
+    defaultEffort = "medium"
   }) {
     if (!apiKey) {
       throw new Error("Falta ANTHROPIC_API_KEY");
@@ -18,20 +18,20 @@ export class ClaudeService {
     this.client = new Anthropic({ apiKey });
     this.model = model;
     this.defaultMaxTokens = defaultMaxTokens;
-    this.defaultTemperature = defaultTemperature;
+    this.defaultEffort = defaultEffort;
   }
 
   async createMessage({
     system,
     messages,
     maxTokens,
-    temperature,
+    effort,
     metadata = {}
   }) {
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: maxTokens || this.defaultMaxTokens,
-      temperature: temperature ?? this.defaultTemperature,
+      output_config: { effort: effort ?? this.defaultEffort },
       system,
       messages
     });

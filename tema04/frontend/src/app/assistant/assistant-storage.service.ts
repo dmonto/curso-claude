@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { ChatMessage } from "./assistant.types";
+import { computed, effect, inject, signal } from "@angular/core";
 
 @Injectable({
   providedIn: "root"
@@ -7,6 +8,9 @@ import { ChatMessage } from "./assistant.types";
 export class AssistantStorageService {
   private readonly conversationIdKey = "assistantConversationId";
   private readonly messagesPrefix = "assistantMessages:";
+  readonly currentContext = computed(() =>
+    this.context.buildScreenContext()
+  );
 
   getOrCreateConversationId(): string {
     const existing = localStorage.getItem(this.conversationIdKey);

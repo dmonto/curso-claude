@@ -41,7 +41,7 @@ export function routeAiRequest({
       profile: "security",
       promptMode: "security",
       maxTokens: 300,
-      temperature: 0.1,
+      effort: "low",
       requiresConfirmation: false
     });
   }
@@ -52,7 +52,7 @@ export function routeAiRequest({
       profile: "action_confirmation",
       promptMode: "action_confirmation",
       maxTokens: 400,
-      temperature: 0.1,
+      effort: "low",
       requiresConfirmation: true
     });
   }
@@ -63,7 +63,7 @@ export function routeAiRequest({
       profile: "data_query",
       promptMode: "data_query",
       maxTokens: 500,
-      temperature: 0.2,
+      effort: "medium",
       requiresConfirmation: false
     });
   }
@@ -74,7 +74,7 @@ export function routeAiRequest({
       profile: "admin",
       promptMode: "admin",
       maxTokens: 700,
-      temperature: 0.2,
+      effort: "medium",
       requiresConfirmation: false
     });
   }
@@ -84,7 +84,7 @@ export function routeAiRequest({
     profile: "functional",
     promptMode: "functional",
     maxTokens: 600,
-    temperature: 0.3,
+    effort: "medium",
     requiresConfirmation: false
   });
 }
@@ -98,12 +98,12 @@ function localRoute({ route, statusCode, message }) {
     profile: "local",
     promptMode: "none",
     maxTokens: 0,
-    temperature: 0,
+    effort: null,
     requiresConfirmation: false
   };
 }
 
-function claudeRoute({ route, profile, promptMode, maxTokens, temperature, requiresConfirmation }) {
+function claudeRoute({ route, profile, promptMode, maxTokens, effort, requiresConfirmation }) {
   return {
     route,
     callModel: true,
@@ -112,7 +112,7 @@ function claudeRoute({ route, profile, promptMode, maxTokens, temperature, requi
     profile,
     promptMode,
     maxTokens,
-    temperature,
+    effort,
     requiresConfirmation
   };
 }

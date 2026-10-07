@@ -1,6 +1,4 @@
-import { Component, computed, inject, input, output } from "@angular/core";
-import { AssistantFrontendContext } from "./assistant.types";
-import { AssistantUxPolicyService } from "./assistant-ux-policy.service";
+import { Component, output } from "@angular/core";
 
 @Component({
   selector: "app-assistant-empty-state",
@@ -8,13 +6,18 @@ import { AssistantUxPolicyService } from "./assistant-ux-policy.service";
   template: `
     <section class="assistant-empty">
       <strong>¿Qué quieres hacer?</strong>
-      <p>El asistente puede ayudarte con tareas relacionadas con la pantalla actual.</p>
 
-      <div class="assistant-empty__suggestions">
-        @for (suggestion of suggestions(); track suggestion.label) {
-          <button type="button" (click)="promptSelected.emit(suggestion.prompt)">
-            <span>{{ suggestion.label }}</span>
-            <small>{{ suggestion.prompt }}</small>
+      <p>
+        Puedes empezar con una de estas acciones rápidas o escribir tu propia pregunta.
+      </p>
+
+      <div class="assistant-empty__examples">
+        @for (prompt of prompts; track prompt) {
+          <button
+            type="button"
+            (click)="promptSelected.emit(prompt)"
+          >
+            {{ prompt }}
           </button>
         }
       </div>
@@ -27,7 +30,7 @@ import { AssistantUxPolicyService } from "./assistant-ux-policy.service";
       line-height: 1.4;
     }
 
-    .assistant-empty__suggestions {
+    .assistant-empty__examples {
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -36,27 +39,20 @@ import { AssistantUxPolicyService } from "./assistant-ux-policy.service";
 
     button {
       text-align: left;
-      padding: 10px;
+      padding: 8px;
       border: 1px solid #ddd;
-      border-radius: 10px;
+      border-radius: 8px;
       background: #fff;
       cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    small {
-      color: #666;
-      line-height: 1.3;
     }
   `]
 })
 export class AssistantEmptyStateComponent {
-  private readonly ux = inject(AssistantUxPolicyService);
-
-  readonly context = input.required<AssistantFrontendContext>();
   readonly promptSelected = output<string>();
 
-  readonly suggestions = computed(() => this.ux.getPromptSuggestions(this.context()));
+  readonly prompts = [
+    "Resume esta pantalla",
+    "Dime qué datos faltan",
+    "Prepara una respuesta para soporte"
+  ];
 }

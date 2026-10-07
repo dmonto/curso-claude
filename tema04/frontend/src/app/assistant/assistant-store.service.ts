@@ -253,13 +253,48 @@ async sendStream(text: string): Promise<void> {
 }
 
   async retryLastMessage(): Promise<void> {
-    const text = this.lastUserText();
+    const lastUser = [...this.messages()].reverse().find(message => message.role === "user");
+    const text = this.lastUserText() ?? lastUser?.content;
 
     if (!text || this.loading()) {
       return;
     }
 
-    await this.send(text);
+    // Si el mensaje falló o va en streaming, el backend no tiene (o no usa) el mensaje: se reenvía.
+    if (this.streamMode() || this.error() || lastUser?.status === "error") {
+      await this.send(text);
+      return;
+    }
+
+    // Sin error: el backend regenera la respuesta al último mensaje sin duplicarlo.
+    this.loading.set(true);
+    this.error.set(null);
+    this.suggestedActions.set([]);
+    this.lastMeta.set(null);
+
+    try {
+      const response = await firstValueFrom(
+        this.api.retryLastMessage(this.conversationId(), this.context.buildContextForRequest())
+      );
+
+      const assistantMessage = this.normalizeAssistantMessage(response.message);
+
+      this.messages.update(current => {
+        const lastUserIndex = current.map(message => message.role).lastIndexOf("user");
+        return [...current.slice(0, lastUserIndex + 1), assistantMessage];
+      });
+
+      this.suggestedActions.set(response.suggestedActions ?? []);
+      this.lastMeta.set(response.meta ?? null);
+
+      void this.loadConversationList().catch(() => {
+        console.warn("No se pudo actualizar la lista de conversaciones");
+      });
+    } catch (error) {
+      this.error.set(this.errors.fromError(error));
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   async clearConversation(): Promise<void> {

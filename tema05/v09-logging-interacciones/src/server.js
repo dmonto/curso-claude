@@ -23,7 +23,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:4200";
 const sessionStore = new SessionStore({ maxMessages: Number(process.env.MAX_HISTORY_MESSAGES || 8), ttlMinutes: Number(process.env.SESSION_TTL_MINUTES || 30) });
-const claudeService = new ClaudeService({ apiKey: process.env.ANTHROPIC_API_KEY, model: process.env.ANTHROPIC_MODEL, defaultMaxTokens: Number(process.env.CLAUDE_MAX_TOKENS || 600), defaultTemperature: Number(process.env.CLAUDE_TEMPERATURE || 0.3) });
+const claudeService = new ClaudeService({ apiKey: process.env.ANTHROPIC_API_KEY, model: process.env.ANTHROPIC_MODEL, defaultMaxTokens: Number(process.env.CLAUDE_MAX_TOKENS || 600), defaultEffort: process.env.CLAUDE_EFFORT || "medium" });
 const interactionLogger = new InteractionLogger({ logDir: process.env.INTERACTION_LOG_DIR || "logs", logFile: process.env.INTERACTION_LOG_FILE || "assistant-interactions.jsonl", logToConsole: process.env.INTERACTION_LOG_CONSOLE !== "false" });
 app.locals.interactionLogger = interactionLogger;
 
@@ -37,7 +37,7 @@ configureSecurity(app);
 
 app.get("/health", (req, res) => res.json({ status: "ok", service: "curso-claude-backend", timestamp: new Date().toISOString() }));
 app.get("/api/security/me", (req, res) => { const sc = getSecurityContext(req); res.json({ userId: sc.userId, displayName: sc.displayName, role: sc.role, permissions: { canViewOrders: sc.permissions.canViewOrders, canViewInvoices: sc.permissions.canViewInvoices, canManageUsers: sc.permissions.canManageUsers } }); });
-app.get("/api/assistant/provider", (req, res) => res.json({ provider: "anthropic", modelConfigured: Boolean(process.env.ANTHROPIC_MODEL), apiKeyConfigured: Boolean(process.env.ANTHROPIC_API_KEY), maxTokens: Number(process.env.CLAUDE_MAX_TOKENS || 600), temperature: Number(process.env.CLAUDE_TEMPERATURE || 0.3) }));
+app.get("/api/assistant/provider", (req, res) => res.json({ provider: "anthropic", modelConfigured: Boolean(process.env.ANTHROPIC_MODEL), apiKeyConfigured: Boolean(process.env.ANTHROPIC_API_KEY), maxTokens: Number(process.env.CLAUDE_MAX_TOKENS || 600), effort: process.env.CLAUDE_EFFORT || "medium" }));
 
 app.post("/api/assistant/message", asyncHandler(async (req, res) => {
   const startedAt = Date.now();
@@ -75,7 +75,7 @@ app.post("/api/assistant/message", asyncHandler(async (req, res) => {
   let claudeResult;
   try {
     claudeResult = await withTimeout(
-      claudeService.createMessage({ system, messages: conversationContext.messages, maxTokens: routePlan.maxTokens, temperature: routePlan.temperature, metadata: { traceId, sessionId: session.sessionId } }),
+      claudeService.createMessage({ system, messages: conversationContext.messages, maxTokens: routePlan.maxTokens, effort: routePlan.effort, metadata: { traceId, sessionId: session.sessionId } }),
       Number(process.env.AI_TIMEOUT_MS || 30000),
       () => new AppError({ code: "AI_TIMEOUT", message: "Timeout esperando respuesta del proveedor IA.", publicMessage: "El asistente ha tardado demasiado en responder. Inténtalo de nuevo.", statusCode: 504, expose: true })
     );

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from "@angular/core";
+import { Component, computed, inject, OnInit, signal } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { Router } from "@angular/router";
 import { AssistantAction } from "./assistant.types";
@@ -105,6 +105,12 @@ import { AssistantUxPolicyService } from "./assistant-ux-policy.service";
   }
 </section>
 
+@if (canRetry()) {
+  <button type="button" class="assistant-panel__retry" (click)="retry()">
+    Regenerar respuesta
+  </button>
+}
+
 <app-assistant-composer
   [disabled]="store.loading()"
   (sendMessage)="send($event)"
@@ -169,6 +175,12 @@ app-assistant-context-banner {
   padding: 12px;
 }
 
+.assistant-panel__retry {
+  flex: 0 0 auto;
+  margin: 6px 12px;
+  align-self: flex-start;
+}
+
 app-assistant-composer {
   flex: 0 0 auto;
   display: block;
@@ -199,6 +211,12 @@ export class AssistantPanelComponent implements OnInit {
 
   readonly open = signal(true);
   readonly pendingAction = signal<AssistantAction | null>(null);
+
+  readonly canRetry = computed(
+    () =>
+      !this.store.loading() &&
+      this.store.messages().some(message => message.role === "user")
+  );
 
   async ngOnInit(): Promise<void> {
     await this.store.hydrateFromBackend();

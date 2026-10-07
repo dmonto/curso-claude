@@ -20,6 +20,17 @@ export class AssistantApiService {
       .pipe(timeout(45000));
   }
 
+  retryLastMessage(
+    conversationId: string,
+    screenContext: AssistantRequest["screenContext"]
+  ): Observable<AssistantResponse> {
+    return this.http
+      .post<AssistantResponse>(`/api/assistant/conversations/${conversationId}/retry`, {
+        screenContext
+      })
+      .pipe(timeout(45000));
+  }
+
   getConversation(conversationId: string): Observable<AssistantConversationResponse> {
     return this.http
       .get<AssistantConversationResponse>(`/api/assistant/conversations/${conversationId}`)
