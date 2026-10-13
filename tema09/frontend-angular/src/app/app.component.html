@@ -1,0 +1,85 @@
+<div class="shell">
+  <aside class="sidebar">
+    <p class="eyebrow">CURSO CLAUDE / TEMA 09</p>
+    <h1>Automatización<br>de tareas</h1>
+    <p class="intro">Prepara un plan, comprueba sus reglas y revisa cada acción antes de confirmarla.</p>
+    <label for="user">Usuario de demostración</label>
+    <select id="user" [(ngModel)]="userId" (ngModelChange)="connect()" [disabled]="busy()">
+      <option value="user-001">user-001 · support_agent</option><option value="user-002">user-002 · support_lead</option>
+      <option value="user-003">user-003 · admin</option><option value="user-004">user-004 · viewer</option>
+    </select>
+    <p class="hint">Compara los permisos de las cuatro sesiones ficticias.</p>
+    <label for="base">Backend</label>
+    <input id="base" [(ngModel)]="baseUrl" placeholder="/api" [disabled]="busy()">
+    <button class="secondary full" (click)="connect()" [disabled]="busy()">Conectar</button>
+    @if (health(); as h) {
+      <div class="connection"><span class="dot"></span> {{ h.version }} · {{ h.ai_mode === 'mock' ? 'Demostración' : 'Claude' }}</div>
+      <p class="hint">{{ h.title }}</p>
+      <p class="hint">Para probar otro apartado, arranca su backend y pulsa Conectar.</p>
+    }
+    <div class="side-note">Los tickets de este laboratorio son ficticios. El resultado de cada prueba se muestra como JSON.</div>
+  </aside>
+  <main>
+    <header><div><p class="eyebrow">LABORATORIO DE SOPORTE</p><h2>De la petición a la acción</h2></div>
+      <span class="pill">{{ busy() ? 'Procesando…' : health() ? 'Conectado' : 'Sin conexión' }}</span>
+    </header>
+    <nav aria-label="Secciones del laboratorio">
+      <button [class.active]="tab === 'task'" (click)="tab = 'task'">Tarea</button>
+      @if (has('batch')) { <button [class.active]="tab === 'batch'" (click)="tab = 'batch'">Lotes</button> }
+      @if (has('monitoring')) { <button [class.active]="tab === 'monitoring'" (click)="tab = 'monitoring'">Actividad</button> }
+    </nav>
+    @if (error()) { <div class="alert" role="alert">{{ error() }}</div> }
+    @if (tab === 'task') {
+      <section class="card">
+        <div class="section-title"><h3>¿Qué quieres hacer?</h3>@if (has('task_assistant')) { <button class="text-button" (click)="reset()" [disabled]="busy()">Nueva conversación</button> }</div>
+        <div class="examples">
+          <button (click)="example('Crea un ticket de prioridad alta para ACME porque no puede acceder al portal corporativo')">Crear un ticket</button>
+          <button (click)="example('Muéstrame los tickets abiertos de ACME')">Buscar tickets</button>
+          <button (click)="example('Asigna el ticket TCK-1001 al equipo soporte N2')">Asignar a N2</button>
+          <button (click)="example('Borra todos los tickets antiguos')">Probar un bloqueo</button>
+        </div>
+        @if (messages().length) { <div class="conversation" aria-live="polite">@for (m of messages(); track $index) { <div class="bubble" [class.own]="m.role === 'Tú'"><strong>{{ m.role }}</strong><p>{{ m.text }}</p></div> }</div> }
+        <label for="message">Petición o datos que faltan</label>
+        <textarea id="message" [(ngModel)]="message" rows="4" placeholder="Describe una tarea de soporte…" [disabled]="busy()"></textarea>
+        <div class="actions">
+          @if (has('task_assistant')) { <button class="primary" (click)="converse()" [disabled]="busy() || !message.trim()">Enviar al asistente</button> }
+          <button class="secondary" (click)="analyze()" [disabled]="busy() || !message.trim() || !health()">Analizar</button>
+          @if (has('plans')) { <button class="secondary" (click)="prepare()" [disabled]="busy() || !message.trim()">Preparar plan directo</button> }
+          @if (has('tickets')) { <button class="text-button" (click)="inspectTickets()" [disabled]="busy()">Ver tickets</button> }
+        </div>
+        @if (state()) { <p class="hint">Estado: {{ state() }}</p> }
+      </section>
+    }
+    @if (tab === 'batch') {
+      <section class="card"><h3>Procesos repetitivos</h3><p>Revisa candidatos, simula el lote y confirma la modificación de los elementos permitidos.</p>
+        <div class="two-columns"><div><label for="hours">Horas sin actualización</label><input id="hours" type="number" min="1" max="1680" [(ngModel)]="staleHours"></div>
+          <div><label for="limit">Máximo de tickets</label><input id="limit" type="number" min="1" max="10" [(ngModel)]="maxItems"></div></div>
+        <div class="actions"><button class="primary" (click)="batch('stale_ticket_followup')" [disabled]="busy()">Preparar seguimiento</button>
+          @if (has('task_assistant')) { <button class="secondary" (click)="batch('urgent_without_owner')" [disabled]="busy()">Urgentes sin responsable</button> }</div>
+        @if (has('retry')) { <details><summary>Prueba de errores transitorios · admin</summary><p>Simula un timeout para TCK-1002 y observa qué elementos se reintentan.</p>
+          <select [(ngModel)]="faultMode"><option value="off">Sin fallo</option><option value="once">Falla una vez</option><option value="always">Falla en cada intento</option></select>
+          <button class="secondary" (click)="setFault()" [disabled]="busy()">Aplicar fallo</button></details> }
+      </section>
+    }
+    @if (tab === 'monitoring') {
+      <section class="card"><div class="section-title"><h3>Actividad de automatización</h3><button class="secondary" (click)="refreshMonitoring()" [disabled]="busy()">Actualizar actividad</button></div>
+        @if (monitoring(); as m) { <div class="metrics"><div><span>Ejecutadas</span><strong>{{ m.executed }}</strong></div><div><span>Bloqueadas</span><strong>{{ m.blocked }}</strong></div><div><span>Fallidas</span><strong>{{ m.failed }}</strong></div><div><span>Éxito por intento</span><strong>{{ m.health.success_rate | percent:'1.0-1' }}</strong></div></div> }
+        @if (events()) { <details open><summary>Eventos recientes</summary><pre>{{ events() | json }}</pre></details> }
+        @if (has('governance')) { <button class="secondary" (click)="inspectReadiness()" [disabled]="busy()">Comprobar preparación</button>@if (readiness()) { <pre>{{ readiness() | json }}</pre> } }
+      </section>
+    }
+    @if (plan(); as p) {
+      <section class="card plan"><div class="section-title"><h3>Revisa el plan</h3><span class="pill">{{ p.kind === 'batch' ? 'Lote' : p.status }}</span></div><p>{{ p.summary }}</p>
+        @if (p.kind === 'batch') { <p class="hint">{{ p.total_candidates }} candidatos · {{ p.approved_count }} permitidos · {{ p.blocked_count }} bloqueados · {{ p.dry_run_passed ? 'Simulación previa registrada' : 'Pendiente de simulación' }}</p>
+          <table><thead><tr><th>Ticket</th><th>Estado</th><th>Motivo</th></tr></thead><tbody>@for (item of p.items; track item.entity_id) { <tr><td>{{ item.entity_id }}</td><td>{{ item.status }}</td><td>{{ item.reason ?? 'Cumple los criterios' }}</td></tr> }</tbody></table>
+        } @else { <pre>{{ p.proposed_action | json }}</pre>@if (p.missing_fields.length) { <p class="hint">Faltan: {{ p.missing_fields.join(', ') }}</p> } }
+        <div class="actions"><button class="secondary" (click)="execute(true)" [disabled]="busy() || !canOperate()">Simular</button>
+          <button class="primary" (click)="execute(false)" [disabled]="busy() || !canOperate() || (p.kind === 'batch' && !p.dry_run_passed)">Confirmar y ejecutar</button>
+          <button class="text-button" (click)="cancel()" [disabled]="busy() || !canOperate()">Cancelar</button>
+          @if (has('retry') && p.kind === 'batch') { <button class="secondary" (click)="retryFailed()" [disabled]="busy()">Reintentar fallidos</button> }</div>
+      </section>
+    }
+    @if (output()) { <section class="card"><div class="section-title"><h3>Resultado de la prueba</h3><span class="eyebrow">JSON</span></div><pre aria-live="polite">{{ output() | json }}</pre></section> }
+    <footer>Curso Claude · Tema 9 · Cada versión conserva su propio estado de demostración.</footer>
+  </main>
+</div>

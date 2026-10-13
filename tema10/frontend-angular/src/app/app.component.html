@@ -1,0 +1,49 @@
+<div class="workspace">
+  <header class="topbar"><div class="brand"><span class="brand-icon">C</span><div><strong>Curso Claude</strong><small>Tema 10 · Agentes inteligentes</small></div></div>
+    <div class="connection"><span class="dot" [class.online]="caps()"></span>{{ caps() ? caps()!.version.id : 'Sin conexión' }}<span class="mode-badge">{{ modelMode() === 'claude' ? 'Claude API' : 'Modo local' }}</span></div>
+  </header>
+  <section class="setup" aria-label="Conexión al laboratorio">
+    <label>Backend<input [(ngModel)]="baseUrl" [disabled]="busy()" aria-label="URL backend"></label>
+    <label>Perfil<select [(ngModel)]="userId" (ngModelChange)="changeUser()" [disabled]="busy()"><option value="demo-agent">Agente · permisos completos</option><option value="demo-readonly">Solo lectura</option><option value="demo-supervisor">Supervisor</option></select></label>
+    <button class="secondary" (click)="connect()" [disabled]="busy()">Conectar</button>
+  </section>
+  @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
+  <div class="layout">
+    <aside class="orders"><div class="section-heading"><h2>Pedidos de prueba</h2><button class="text-button" (click)="refreshOrders()" [disabled]="busy()">Actualizar</button></div>
+      <p class="muted">Consulta un pedido para empezar. Los cambios se reflejan aquí.</p>
+      @for (order of orders(); track order.id) {
+        <button class="order-card" (click)="setPrompt('Consulta el pedido ' + order.id)" [disabled]="busy()"><span class="order-top"><strong>#{{ order.id }}</strong><span class="status" [class.cancelled]="order.status === 'cancelled'">{{ order.status === 'preparing' ? 'En preparación' : order.status === 'shipped' ? 'Enviado' : 'Cancelado' }}</span></span><span>{{ order.customerName }}</span><span class="order-bottom">{{ order.amount | currency:'EUR':'symbol':'1.2-2' }}<small>{{ order.canCancel ? 'Cancelable' : 'Sin cancelación automática' }}</small></span></button>
+      }
+      @if (caps()?.features?.['memory']) { <button class="secondary full" (click)="inspectMemory()" [disabled]="busy()">Ver memoria de esta conversación</button> }
+      @if (memory()) { <details open><summary>Memoria disponible</summary><pre>{{ memory() | json }}</pre></details> }
+    </aside>
+    <main class="agent-panel">
+      <div class="panel-header"><div><p class="eyebrow">ASISTENTE OPERATIVO</p><h1>Agente de pedidos</h1><p class="muted">{{ caps()?.version?.title || 'Inicia un backend y conecta el laboratorio.' }}</p></div><button class="secondary" (click)="newConversation()" [disabled]="busy()">Nueva conversación</button></div>
+      <nav class="tabs" aria-label="Vista"><button [class.active]="tab === 'chat'" (click)="tab = 'chat'">Conversación</button>@if (caps()?.features?.['supervision']) { <button [class.active]="tab === 'supervisor'" (click)="tab = 'supervisor'; caps()?.permissions?.canSupervise && loadApprovals()">Supervisión humana</button> }</nav>
+      @if (tab === 'chat') {
+        <div class="chat-toolbar"><label>Modo<select [(ngModel)]="mode" [disabled]="busy()"><option value="agent">Agente con herramientas</option>@if (caps()?.features?.['chatbot']) { <option value="chatbot">Chatbot informativo</option> }</select></label><label>Tarea<select [(ngModel)]="selectedTask" [disabled]="busy()"><option value="">Detectar desde el mensaje</option>@for (task of taskOptions(); track task.value) { <option [value]="task.value">{{ task.label }}</option> }</select></label></div>
+        <div class="chat" aria-live="polite">
+          @if (messages().length === 0) { <div class="empty"><div class="empty-icon">↗</div><h2>Una petición, pasos controlados</h2><p>Consulta un estado, prepara una acción y revisa la propuesta antes de confirmarla.</p><div class="quick-prompts"><button (click)="setPrompt('Consulta el pedido 1842')">Consultar un pedido</button><button (click)="setPrompt('Cancela el pedido 1842')">Preparar cancelación</button>@if (caps()?.features?.['multiSystem']) { <button (click)="setPrompt('El cliente no ha recibido el pedido 1843. Revisa la entrega y abre una incidencia si procede.')">Revisar un retraso</button> }</div></div> }
+          @for (entry of messages(); track $index) {
+            <article class="message" [class.user-message]="entry.role === 'user'"><span class="message-label">{{ entry.role === 'user' ? 'Tú' : 'Agente' }}</span><p>{{ entry.text }}</p>
+              @if (entry.reply?.toolTrace?.length) { <details><summary>Herramientas y resultados</summary>@for (call of entry.reply!.toolTrace!; track $index) { <div class="tool-call"><code>{{ call.toolName }}</code><span>{{ call.status }}</span><pre>{{ call.result | json }}</pre></div> }</details> }
+            </article>
+          }
+          @if (busy()) { <p class="working" role="status">Procesando…</p> }
+        </div>
+        @if (pending(); as action) { <section class="proposal" aria-label="Confirmación de acción"><p class="eyebrow">PROPUESTA PENDIENTE</p><h2>Revisa antes de ejecutar</h2><p>{{ action.summary }}</p><details><summary>Parámetros de la acción</summary><pre>{{ action.input | json }}</pre></details><small>Caduca: {{ action.expiresAt | date:'HH:mm:ss' }}</small><div class="proposal-buttons"><button class="primary" (click)="confirm('confirm')" [disabled]="busy()">Confirmar acción</button><button class="secondary" (click)="confirm('cancel')" [disabled]="busy()">Descartar</button></div></section> }
+        <form class="composer" (ngSubmit)="send()"><label class="sr-only" for="message">Mensaje</label><textarea id="message" name="message" [(ngModel)]="message" placeholder="Escribe tu petición sobre un pedido…" [disabled]="busy()" rows="2"></textarea><button class="primary" type="submit" [disabled]="busy() || !message.trim() || !caps()">Enviar ↗</button></form>
+        @if (caps()?.features?.['feedback'] && messages().length > 0) { <details class="feedback"><summary>Valorar el resultado</summary><label>Puntuación<select [(ngModel)]="rating">@for (score of [1,2,3,4,5]; track score) { <option [ngValue]="score">{{ score }} / 5</option> }</select></label><label>Comentario<input [(ngModel)]="feedbackComment" placeholder="Qué funcionó o qué mejorarías"></label><label class="checkbox"><input type="checkbox" [(ngModel)]="feedbackResolved">Tarea resuelta</label><button class="secondary" (click)="feedback()" [disabled]="busy()">Guardar valoración</button>@if (feedbackSent()) { <span class="saved">Valoración guardada.</span> }</details> }
+      } @else {
+        <section class="supervisor">
+          @if (!caps()?.permissions?.canSupervise) { <p>Selecciona el perfil <strong>Supervisor</strong> para revisar las solicitudes pendientes.</p> } @else {
+            <div class="section-heading"><h2>Solicitudes pendientes</h2><button class="secondary" (click)="loadApprovals()" [disabled]="busy()">Actualizar solicitudes</button></div><label>Motivo de la decisión<input [(ngModel)]="supervisorReason" maxlength="500"></label>
+            @if (approvals().length === 0) { <p class="muted">No hay solicitudes pendientes.</p> }
+            @for (approval of approvals(); track approval.approvalId) { <article class="approval"><span class="status">Riesgo {{ approval.riskLevel }}</span><h3>{{ approval.agentSummary }}</h3><p>{{ approval.reason }}</p><small>{{ approval.userId }} · {{ approval.toolName }}</small><details><summary>Datos y evidencia</summary><pre>{{ approval.toolInput | json }}</pre><pre>{{ approval.evidence | json }}</pre></details><div class="proposal-buttons"><button class="primary" (click)="decide(approval, 'approve')" [disabled]="busy() || supervisorReason.length < 3">Aprobar y ejecutar</button><button class="secondary" (click)="decide(approval, 'reject')" [disabled]="busy() || supervisorReason.length < 3">Rechazar</button></div></article> }
+          }
+        </section>
+      }
+    </main>
+  </div>
+  <footer>Laboratorio local · {{ caps()?.version?.id || 'v01–v10' }} · Notificaciones simuladas</footer>
+</div>

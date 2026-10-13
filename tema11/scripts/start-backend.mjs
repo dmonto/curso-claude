@@ -1,0 +1,14 @@
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
+const root = new URL('../', import.meta.url);
+const versions = JSON.parse(readFileSync(new URL('versions.json', root), 'utf8'));
+const id = process.argv[2] || 'v10';
+const version = versions.find(v => v.id === id);
+if (!version) throw new Error('Versión inválida. Usa v01, v02, …, v10.');
+const cwd = fileURLToPath(new URL(`${version.directory}/`, root));
+if (!existsSync(new URL(`${version.directory}/node_modules/express/`, root))) throw new Error(`Faltan dependencias. Ejecuta npm ci dentro de ${version.directory} o npm run install:backends en la raíz.`);
+const child = spawn(process.execPath, ['scripts/start-all.js'], { cwd, stdio: 'inherit' });
+child.on('exit', code => { process.exitCode = code || 0; });
+child.on('error', () => { process.exitCode = 1; });
+for (const event of ['SIGINT', 'SIGTERM']) process.once(event, () => child.kill('SIGTERM'));

@@ -1,0 +1,81 @@
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Inicio"><span class="brand-mark">11</span><span>Curso Claude<span class="brand-sub">Laboratorio de integración</span></span></a>
+    <span class="course-tag">APIs internas</span>
+  </header>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="eyebrow">CONFIGURACIÓN</div>
+      <h3>Conecta tu laboratorio</h3>
+      <p class="muted">Inicia una versión del backend y conéctate con un usuario de prueba.</p>
+      <label for="version">Versión a iniciar</label>
+      <select id="version" [(ngModel)]="version" (ngModelChange)="disconnect()" [disabled]="busy()">
+        @for (item of versions; track item[0]) { <option [value]="item[0]">{{ item[0] }} · {{ item[1] }}</option> }
+      </select>
+      <div class="command"><small>Ejecuta en la raíz del ZIP</small><code>{{ command() }}</code></div>
+      <p class="micro">El selector muestra el comando. Detén el backend anterior con Ctrl+C antes de iniciar otra versión.</p>
+      <label for="url">URL del backend</label>
+      <input id="url" [(ngModel)]="backendUrl" (ngModelChange)="disconnect()" [disabled]="busy()" spellcheck="false">
+      <label for="user">Usuario</label>
+      <select id="user" [(ngModel)]="username" (ngModelChange)="userChanged()" [disabled]="busy()">
+        <option value="ana">Ana · operaciones</option><option value="soporte">Soporte · lectura</option>
+        <option value="operador">Operador · prueba de roles</option><option value="externo">Externo · Globex</option>
+        <option value="sinpermisos">Usuario sin permisos</option>
+      </select>
+      <label for="password">Contraseña demo · v05–v10</label>
+      <input id="password" type="password" [(ngModel)]="password" [disabled]="busy()" autocomplete="current-password">
+      <button class="primary connect" (click)="connect()" [disabled]="busy()">{{ busy() && !connected() ? 'Conectando…' : 'Conectar' }}</button>
+      @if (health(); as h) {
+        <div class="connection-status"><span class="dot"></span> {{ h.version }} conectado <span class="mode">{{ h.modelMode }}</span></div>
+        @if (h.version !== version) { <p class="notice">Has seleccionado {{ version }}, pero el backend iniciado es {{ h.version }}. Las pruebas usarán {{ h.version }}.</p> }
+      }
+      @if (capabilities(); as c) {
+        <div class="capabilities"><div class="eyebrow">SESIÓN ACTIVA</div><strong>{{ c.user.displayName }}</strong><p class="micro">Organización: {{ c.user.tenantId }}</p>
+          <div class="eyebrow spaced">CAPACIDADES</div>
+          @for (tool of c.availableTools; track tool) { <span class="tool-chip">{{ tool }}</span> }
+          @if (!c.availableTools.length) { <p class="micro">Este usuario no tiene herramientas disponibles.</p> }
+          @if (canMetrics()) { <button class="secondary metrics-button" (click)="metrics()" [disabled]="busy()">Ver rendimiento</button> }
+        </div>
+      }
+    </aside>
+    <section class="workspace" aria-label="Pruebas del asistente">
+      <div class="workspace-heading"><div><div class="eyebrow">TEMA 11</div><h3>Tu aplicación, conectada.</h3><p class="muted">Consulta datos y prepara acciones sobre servicios internos.</p></div>
+        <span class="status-pill" [class.online]="connected()">{{ connected() ? 'Sesión activa' : 'Sin conexión' }}</span>
+      </div>
+      @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
+      @if (health()?.modelMode === 'mock') { <div class="mock-note">Modo de prueba determinista: consulta las APIs locales sin utilizar una clave ni llamar a Claude.</div> }
+      <div class="conversation" aria-live="polite">
+        @if (!messages().length) {
+          <div class="empty"><div class="empty-mark">API</div><h3>Empieza con una consulta</h3><p>Conéctate y prueba un pedido. El backend decide qué información está disponible para tu usuario.</p>
+            <div class="quick-prompts">
+              <button class="prompt" (click)="send('Resume el pedido PED-1001')" [disabled]="!connected() || busy()">Resume el pedido PED-1001 <span>↗</span></button>
+              <button class="prompt" (click)="send('¿Qué pedidos están retrasados?')" [disabled]="!connected() || busy()">Busca pedidos retrasados <span>↗</span></button>
+              @if (canTicket()) { <button class="prompt" (click)="send('Crea un ticket HIGH para revisar el retraso del pedido PED-1002')" [disabled]="busy()">Prepara un ticket de soporte <span>↗</span></button> }
+            </div>
+          </div>
+        }
+        @for (message of messages(); track message.id) {
+          <article class="message" [class.from-user]="message.role === 'user'"><div class="message-author">{{ message.role === 'user' ? 'Tú' : 'Asistente' }}</div><div class="message-text">{{ message.text }}</div>
+            @for (action of message.actions; track action.actionId) {
+              <section class="action-card"><div class="action-top"><strong>{{ action.summary }}</strong><span class="action-status">{{ action.status }}</span></div>
+                <pre>{{ action.details | json }}</pre>
+                @if (action.status === 'pending') {
+                  <p class="micro">Válida hasta {{ action.expiresAt | date:'HH:mm:ss' }}. La acción se ejecuta al confirmar.</p>
+                  <div class="action-buttons"><button class="primary" (click)="act(action, true)" [disabled]="busy() || expired(action)">{{ action.type === 'cancel_order' ? 'Confirmar cancelación' : 'Confirmar creación de ticket' }}</button><button class="secondary" (click)="act(action, false)" [disabled]="busy()">Descartar</button></div>
+                }
+                @if (action.error) { <p class="notice">{{ action.error }}</p> }
+                @if (action.result) { <pre>{{ action.result | json }}</pre> }
+              </section>
+            }
+            @if (message.response; as r) { <div class="response-meta">{{ r.toolCalls }} consultas · {{ r.durationMs }} ms · {{ r.mode }}</div><details><summary>Ver resultados de herramientas</summary><pre>{{ r.toolResults | json }}</pre><small>Referencia: {{ r.correlationId }}</small></details> }
+          </article>
+        }
+        @if (busy() && connected()) { <div class="working" role="status">Procesando solicitud…</div> }
+      </div>
+      <form class="composer" (ngSubmit)="send()"><label class="sr-only" for="message">Mensaje para el asistente</label><input id="message" name="message" [(ngModel)]="draft" placeholder="Pregunta por un pedido o prepara una acción…" maxlength="4000" [disabled]="!connected() || busy()" autocomplete="off"><button class="primary" type="submit" [disabled]="!connected() || busy() || !draft.trim()">Enviar</button></form>
+      <div class="composer-note">Las acciones requieren confirmación. Los datos y cambios de este laboratorio son simulados.</div>
+      @if (performanceData()) { <details class="performance" open><summary>Rendimiento del backend</summary><pre>{{ performanceData() | json }}</pre></details> }
+    </section>
+  </main>
+  <footer>Curso Claude <span>Integración del asistente con APIs internas</span><span>v01 → v10</span></footer>
+</div>
