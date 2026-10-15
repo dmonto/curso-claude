@@ -1,0 +1,10 @@
+import { spawn } from 'node:child_process';
+import { readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const requested=(process.argv[2]||'10').replace(/^v/,'').padStart(2,'0');
+const directory=readdirSync(root).find(x=>x.startsWith('v'+requested+'-'));
+if(!directory) throw new Error('Versión inválida: usa 01..10');
+const child=spawn(process.execPath,[root+directory+'/server.js'],{stdio:'inherit'});
+child.on('exit',code=>process.exit(code ?? 1));
+for(const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>child.kill(signal));

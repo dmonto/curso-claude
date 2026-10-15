@@ -1,0 +1,38 @@
+<main>
+  <header><span>CURSO CLAUDE · TEMA 13</span><h3>Laboratorio de seguridad y acceso</h3><p>Consulta tickets, comprueba permisos y revisa las evidencias de las acciones.</p></header>
+  <section>
+    <h3>Conexión e identidad</h3>
+    <label>Backend <input [(ngModel)]="baseUrl" placeholder="http://127.0.0.1:3000" [disabled]="!!user()"></label>
+    <label>Cuenta <select [(ngModel)]="email"><option>admin@empresa.com</option><option>agent@empresa.com</option><option>ana@empresa.com</option><option>otro@empresa.com</option></select></label>
+    <label>Contraseña del laboratorio <input type="password" [(ngModel)]="password" autocomplete="off"></label>
+    <button (click)="login()" [disabled]="busy()">Entrar / cambiar cuenta</button>
+    @if(user(); as u) {<button class="secondary" (click)="logout()" [disabled]="busy()">Salir</button><p>{{u.email}} · {{u.role}} · {{u.tenantId}}</p>}
+    <p>{{version()}}</p>
+  </section>
+  @if(error()) {<p class="error" role="alert">{{error()}}</p>}
+  @if(busy()) {<p role="status">Procesando…</p>}
+  @if(user(); as u) {
+    <div class="columns">
+      <section><h3>Tickets visibles</h3><button (click)="refresh()" [disabled]="busy()">Actualizar</button>
+      @for(t of tickets(); track t.id) {<article><strong>{{t.id}} · {{t.title}}</strong><p>{{t.description}}</p><span>{{t.status}}</span></article>}
+      </section>
+      <section><h3>Asistente</h3><label>Consulta <textarea [(ngModel)]="message" rows="4"></textarea></label><button (click)="chat()" [disabled]="busy()">Consultar</button><pre>{{answer()}}</pre></section>
+    </div>
+    @if(caps()['actions']) {
+      <section><h3>Acciones con control en el backend</h3><label>Ticket <input [(ngModel)]="ticketId"></label>
+      @if(u.role==='support_admin') {<label>Escribe CONFIRMO CERRAR seguido del identificador <input [(ngModel)]="confirmation" placeholder="CONFIRMO CERRAR TCK-1002"></label><button (click)="action('close_ticket')" [disabled]="busy()">Cerrar ticket</button>}
+      @if(u.role!=='customer') {<label>Nota privada <textarea [(ngModel)]="note"></textarea></label><button (click)="action('add_private_note')" [disabled]="busy()">Añadir nota</button>}
+      @if(u.role==='customer') {<p>Tu cuenta permite consultar tus tickets. Las acciones de soporte requieren otro rol.</p>}
+      </section>
+    }
+    <section><h3>Evidencias y privacidad</h3>
+    @if(u.role==='support_admin') {
+      @if(caps()['actions']) {<button (click)="report('/audit/actions/verify')" [disabled]="busy()">Verificar auditoría</button>}
+      @if(caps()['activity']) {<button (click)="report('/activity/summary')" [disabled]="busy()">Actividad</button>}
+      @if(caps()['compliance']) {<button (click)="report('/compliance/report')" [disabled]="busy()">Cumplimiento</button>}
+      @if(caps()['baseline']) {<button (click)="report('/security/baseline')" [disabled]="busy()">Diagnóstico de seguridad</button>}
+    }
+    @if(caps()['compliance']) {<button (click)="report('/privacy/me/activity')" [disabled]="busy()">Mi actividad</button><button class="secondary" (click)="privacy()" [disabled]="busy()">Solicitar revisión de supresión</button>}
+    <pre>{{result()}}</pre></section>
+  }
+</main>

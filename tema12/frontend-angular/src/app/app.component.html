@@ -1,0 +1,31 @@
+<div class="workspace">
+  <header class="topbar"><div class="brand"><span class="brand-icon">C</span><div><strong>Curso Claude</strong><small>Tema 12 · Contexto</small></div></div>
+    <div class="connection"><span class="dot" [class.online]="caps()"></span>{{ caps() ? caps()!.version.id : 'Sin conexión' }}<span class="mode-badge">{{ modelMode() === 'claude' ? 'Claude API' : 'Modo local' }}</span></div>
+  </header>
+  <section class="setup">
+    <label>Backend<input [(ngModel)]="baseUrl" [disabled]="busy()"></label>
+    <label>Perfil<select [(ngModel)]="userId" (ngModelChange)="connect()"><option value="demo-agent">Agente</option><option value="demo-readonly">Solo lectura</option><option value="demo-supervisor">Supervisor</option></select></label>
+    <label>Vista<select [(ngModel)]="selectedView"><option value="ticket_detail">Detalle ticket</option><option value="ticket_list">Listado tickets</option><option value="dashboard">Dashboard</option></select></label>
+    <label>Ticket<select [(ngModel)]="selectedTicketId"><option value="INC-1042">INC-1042</option><option value="INC-1077">INC-1077</option><option value="INC-1031">INC-1031</option></select></label>
+    <button class="secondary" (click)="connect()" [disabled]="busy()">Conectar</button>
+  </section>
+  @if (error()) { <div class="error">{{ error() }}</div> }
+  <div class="layout">
+    <aside class="orders"><div class="section-heading"><h2>Tickets</h2><button class="text-button" (click)="refreshTickets()">Actualizar</button></div>
+      @for (ticket of tickets(); track ticket.id) { <button class="order-card" (click)="selectedTicketId=ticket.id; selectedView='ticket_detail'; setPrompt('Resume este ticket')"><span class="order-top"><strong>{{ ticket.id }}</strong><span class="status">{{ ticket.status }}</span></span><span>{{ ticket.title }}</span><span class="order-bottom">{{ ticket.priority }}<small>SLA {{ ticket.sla }} · notas {{ ticket.noteCount }}</small></span></button> }
+      <button class="secondary full" (click)="inspectContext()">Ver contexto</button><button class="secondary full" (click)="inspectEvents()">Ver eventos</button><button class="secondary full" (click)="inspectSegments()">Ver segmentos</button><button class="secondary full" (click)="quality(false)">Calidad</button><button class="secondary full" (click)="quality(true)">Calidad + autofix</button>
+      @if (contextHealth()) { <details open><summary>Calidad</summary><pre>{{ contextHealth() | json }}</pre></details> }
+    </aside>
+    <main class="agent-panel"><div class="panel-header"><div><p class="eyebrow">ASISTENTE DE CONTEXTO</p><h1>Gestión de contexto</h1><p class="muted">{{ caps()?.version?.title || 'Inicia backend y conecta.' }}</p></div><button class="secondary" (click)="newConversation()">Nueva conversación</button></div>
+      <div class="chat-toolbar"><label><input type="checkbox" [(ngModel)]="debugTokens"> debugTokens</label><label><input type="checkbox" [(ngModel)]="lastUiError"> simular error UI</label><label>Modo contexto<select [(ngModel)]="contextMode"><option value="normal">normal</option><option value="lowCost">lowCost</option></select></label></div>
+      <div class="quick-prompts"><button (click)="setPrompt('Resume este ticket')">Resume</button><button (click)="setPrompt('Añade una nota diciendo que el cliente confirma que el problema sigue ocurriendo')">Añadir nota</button><button (click)="setPrompt('¿Puedo cerrarlo?')">Cerrar</button><button (click)="setPrompt('Sí, confirmo')">Confirmar</button><button (click)="setPrompt('¿Qué significa este error?')">Explicar error</button></div>
+      <div class="chat">
+        @for (entry of messages(); track $index) { <article class="message" [class.user-message]="entry.role === 'user'"><span class="message-label">{{ entry.role === 'user' ? 'Tú' : 'Asistente' }}</span><p>{{ entry.text }}</p></article> }
+        @if (busy()) { <p class="working">Procesando…</p> }
+      </div>
+      @if (pending(); as action) { <section class="proposal"><p class="eyebrow">ACCIÓN PENDIENTE</p><h2>{{ action.summary }}</h2><small>Caduca: {{ action.expiresAt | date:'HH:mm:ss' }}</small><div class="proposal-buttons"><button class="primary" (click)="confirm('confirm')">Confirmar acción</button><button class="secondary" (click)="confirm('cancel')">Descartar</button></div></section> }
+      <form class="composer" (ngSubmit)="send()"><textarea name="message" [(ngModel)]="message" rows="2" placeholder="Escribe una petición sobre contexto o tickets…"></textarea><button class="primary" type="submit" [disabled]="busy() || !message.trim()">Enviar</button></form>
+      @if (contextDebug()) { <details open class="debug"><summary>Debug de contexto</summary><pre>{{ contextDebug() | json }}</pre></details> }
+    </main>
+  </div>
+</div>
