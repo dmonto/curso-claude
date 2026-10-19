@@ -1,0 +1,4 @@
+param([string]$BaseUrl='http://127.0.0.1:3000')
+. (Join-Path $PSScriptRoot 'common.ps1')
+$null=Invoke-Lab -BaseUrl $BaseUrl -Path '/evaluation/run' -Method POST
+$null=Invoke-Lab -BaseUrl $BaseUrl -Path '/monitoring/health'

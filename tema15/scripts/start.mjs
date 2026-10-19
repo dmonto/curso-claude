@@ -1,0 +1,11 @@
+import {readFileSync,existsSync} from 'node:fs';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const root=new URL('../',import.meta.url);
+const versions=JSON.parse(readFileSync(new URL('versions.json',root),'utf8'));
+const selected=versions.find(v=>v.id===(process.argv[2]||'v10'));
+if(!selected)throw Error('Usa v01 a v10');
+const env=new URL('.env',root);if(existsSync(env))process.loadEnvFile(fileURLToPath(env));
+const child=spawn(process.execPath,['server.js'],{cwd:fileURLToPath(new URL(selected.directory+'/',root)),stdio:'inherit'});
+child.on('error',e=>{console.error(e.message);process.exitCode=1;});
+child.on('exit',code=>{process.exitCode=code??1;});

@@ -1,0 +1,10 @@
+import {readFileSync,copyFileSync} from 'node:fs';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const versions=JSON.parse(readFileSync(new URL('../versions.json',import.meta.url)));
+const v=versions.find(v=>v.id===(process.argv[2]||'v10'));
+if(!v)throw Error('Versión válida: v01 a v10');
+copyFileSync(root+'.env',root+v.directory+'/.env');
+const child=spawn(process.execPath,['server.js'],{cwd:root+v.directory,stdio:'inherit'});
+child.on('exit',code=>process.exitCode=code??1);
