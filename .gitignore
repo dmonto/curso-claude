@@ -5,3 +5,4 @@
 node_modules
 *.md
 *.db
+!/ejercicio_final/**
